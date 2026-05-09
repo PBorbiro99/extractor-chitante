@@ -5,6 +5,13 @@ export type DocType =
   | 'bon_fiscal'
   | 'necunoscut'
 
+// Direction: which of the 4 columns the amount goes into
+export type TransactionDirection =
+  | 'incasari_numerar'   // col E
+  | 'incasari_banca'     // col F
+  | 'plati_numerar'      // col G
+  | 'plati_banca'        // col H
+
 export interface ReceiptData {
   doc_type: DocType
   date: string | null           // DD/MM/YYYY
@@ -14,6 +21,7 @@ export interface ReceiptData {
   suma: number | null
   plata: 'numerar' | 'card/banca' | 'mixt' | null
   explicatii: string | null
+  direction: TransactionDirection | null
 }
 
 export interface ExtractResult {
