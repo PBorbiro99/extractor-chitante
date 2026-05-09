@@ -84,7 +84,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<SheetResult>>
       requestBody: { values: [row] },
     })
 
-    return NextResponse.json({ ok: true, range: appendRes.data.updates?.updatedRange })
+    return NextResponse.json({ ok: true, range: appendRes.data.updates?.updatedRange ?? undefined })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('Sheets error:', message)
