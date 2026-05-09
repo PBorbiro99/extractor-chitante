@@ -11,7 +11,6 @@ function getAuth() {
 }
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || ''
-const SHEET_NAME = 'Foaie1'
 
 // Column layout (A–H):
 // A = NR.CRT | B = DATA | C = DOC.FELUL.NR | D = EXPLICATII
@@ -19,13 +18,28 @@ const SHEET_NAME = 'Foaie1'
 // G = PLATI NUMERAR   | H = PLATI BANCA
 // Data starts at row 10 to match the registru header format
 
-async function getFirstEmptyDataRow(
+// Fetch the first sheet's actual title from the spreadsheet metadata
+async function getSheetName(
   sheets: ReturnType<typeof google.sheets>,
   spreadsheetId: string
+): Promise<string> {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId })
+  const firstSheet = meta.data.sheets?.[0]
+  const title = firstSheet?.properties?.title
+  if (!title) throw new Error('Could not determine sheet name')
+  return title
+}
+
+async function getFirstEmptyDataRow(
+  sheets: ReturnType<typeof google.sheets>,
+  spreadsheetId: string,
+  sheetName: string
 ): Promise<number> {
+  // Wrap sheet name in single quotes to handle spaces and special chars
+  const safeName = `'${sheetName}'`
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A10:A`,
+    range: `${safeName}!A10:A`,
   })
   const values = res.data.values ?? []
   for (let i = 0; i < values.length; i++) {
@@ -42,7 +56,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<SheetResult>>
     const auth = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
 
-    const targetRow = await getFirstEmptyDataRow(sheets, SHEET_ID)
+    const sheetName = await getSheetName(sheets, SHEET_ID)
+    const safeName = `'${sheetName}'`
+
+    const targetRow = await getFirstEmptyDataRow(sheets, SHEET_ID, sheetName)
     const nrCrt = targetRow - 9
 
     const suma = d.suma != null ? d.suma : ''
@@ -62,7 +79,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<SheetResult>>
       platiBanca,          // H - PLATI BANCA
     ]
 
-    const range = `${SHEET_NAME}!A${targetRow}:H${targetRow}`
+    const range = `${safeName}!A${targetRow}:H${targetRow}`
     const updateRes = await sheets.spreadsheets.values.update({
       spreadsheetId: SHEET_ID,
       range,
